@@ -25,12 +25,12 @@ def load_model(model_name: str) -> ChatOpenAI:
 
 
 def load_prompt(file_name: str) -> str:
-    with open("{}.txt".format(file_name), "r", encoding="utf-8") as f:
+    with open("./prompts/{}.txt".format(file_name), "r", encoding="utf-8") as f:
         return f.read()
 
 
 def load_fewshotprompt(file_name: str) -> FewShotChatMessagePromptTemplate:
-    with open("{}_fewshot.txt".format(file_name), "r", encoding="utf-8") as f:
+    with open("./prompts/{}_fewshot.txt".format(file_name), "r", encoding="utf-8") as f:
         qna = json.load(f)
 
     example_prompt = ChatPromptTemplate.from_messages(
