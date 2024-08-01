@@ -1,0 +1,18 @@
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --url http://fastapi:80
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARED_TOKEN}
+    deploy:
+      replicas: ${CLOUDFLARED_REPLICAS}
+    volumes:
+      - ./certs:/etc/cloudflared/certs
+    depends_on:
+      - nginx
