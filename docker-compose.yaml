@@ -1,4 +1,15 @@
 services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      - GOOGLE_TTS_API_KEY=${GOOGLE_TTS_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - API_HOSTNAME=${API_HOSTNAME}
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+
   nginx:
     image: nginx:latest
     ports:
