@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Form, File, UploadFile, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -14,7 +15,21 @@ import requests
 import os
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+
+origins = [
+    "http://localhost:8080",
+    "http://localhost:8001",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 client = OpenAI()
 
 
@@ -94,6 +109,62 @@ async def read_root():
     with open("static/index.html", "r", encoding="utf-8") as f:
         html_content = f.read().replace("{{ api_hostname }}", api_hostname)
         return HTMLResponse(content=html_content)
+
+
+@app.get("/config")
+async def return_config():
+    ret_json = {"http_protocol": os.environ["HTTP_PROTOCOL"],
+                "api_hostname": os.environ["API_HOSTNAME"],
+                }
+    return ret_json
+
+
+@app.post("/process_audio_chat")
+async def process_audio_chat(audio: UploadFile = File(...)):
+    contents = await audio.read()
+    float32_array = np.frombuffer(contents, dtype=np.float32)
+    int16_array = (float32_array * 32767).astype(np.int16)
+    byte_data = int16_array.tobytes()
+    audio_segment = AudioSegment(
+        data=byte_data,
+        sample_width=2,  # 2 bytes for int16
+        frame_rate=16000,  # Assuming a sample rate of 16000 Hz
+        channels=1  # Assuming mono audio
+    )
+    wav_io = io.BytesIO()
+    audio_segment.export(wav_io, format="wav")
+    wav_io.seek(0)
+    print("Exported to WAV format")
+
+    question = STT(wav_io.read())
+    print("STT result:", question)
+
+    now = datetime.now().strftime("%H:%M")
+    chat_history.append(("user", now, question))
+    messages.append({"role": "user", "content": question})
+
+    response = ask_gpt(question)
+    messages.append({"role": "system", "content": response})
+
+    now = datetime.now().strftime("%H:%M")
+    chat_history.append(("bot", now, response))
+
+    tts = os.environ["TTS_SERVICE"]
+    voice_name = os.environ["TTS_VOICE"]
+    print(f"tts: {tts}, voice_name: {voice_name}")
+
+    if tts == "gtts":
+        tts_data = TTS(response)
+    elif tts == "google":
+        tts_data = gcloud_tts(response, voice_name)
+    else:
+        tts_data = openai_tts(response, voice_name)
+
+    # Encode the MP3 data in base64
+    mp3_base64 = base64.b64encode(tts_data).decode('utf-8')
+
+    return {"success": True, "question": question, "response": response, "audio_file": mp3_base64}
+
 
 @app.post("/process_audio")
 async def process_audio(tts: str = Form(...), voice_name: str = Form(...), audio: UploadFile = File(...)):
