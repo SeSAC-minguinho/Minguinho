@@ -30,122 +30,118 @@
     <!-- VAD scripts -->
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.7/dist/bundle.min.js"></script>
+    <script>
+        const API_HOSTNAME = "{{ api_hostname }}";
+        const WS_PROTO = window.location.protocol === "https:" ? "wss" : "ws";
+        const ws = new WebSocket(`${WS_PROTO}://${API_HOSTNAME}/ws`);
+        let myVAD = null;
+        let vadActive = false;
 
-
-</head>
-
-<body>
-<script>
-    const API_HOSTNAME = "{{ api_hostname }}";
-    const ws = new WebSocket(`ws://${API_HOSTNAME}/ws`);
-    let myVAD = null;
-    let vadActive = false;
-
-    async function setupVAD() {
-        myVAD = await vad.MicVAD.new({
-            onSpeechStart: () => {
-                console.log("Speech start detected");
-            },
-            onSpeechEnd: (audio) => {
-                sendAudioToServer(audio);
-            }
-        });
-    }
-
-    function startVAD() {
-        myVAD.start();
-        vadActive = true;
-        document.getElementById('startBtn').style.display = 'none';
-        document.getElementById('endBtn').style.display = 'inline';
-        document.getElementById('pauseBtn').style.display = 'inline';
-    }
-
-    function pauseVAD() {
-        myVAD.pause();
-        document.getElementById('pauseBtn').style.display = 'none';
-        document.getElementById('resumeBtn').style.display = 'inline';
-    }
-
-    function resumeVAD() {
-        myVAD.start();
-        document.getElementById('pauseBtn').style.display = 'inline';
-        document.getElementById('resumeBtn').style.display = 'none';
-    }
-
-    function endVAD() {
-        myVAD.pause();
-        vadActive = false;
-        document.getElementById('endBtn').style.display = 'none';
-        document.getElementById('startBtn').style.display = 'inline';
-        document.getElementById('pauseBtn').style.display = 'none';
-        document.getElementById('resumeBtn').style.display = 'none';
-    }
-
-    let audioQueue = [];
-    let isPlaying = false;
-
-    function playAudio(base64Audio) {
-        audioQueue.push(base64Audio);
-        if (!isPlaying) {
-            playNextAudio();
-        }
-    }
-
-    function playNextAudio() {
-        if (audioQueue.length === 0) {
-            isPlaying = false;
-            return;
-        }
-
-        isPlaying = true;
-        const base64Audio = audioQueue.shift();
-        const audio = new Audio("data:audio/mp3;base64," + base64Audio);
-
-        audio.onended = () => {
-            playNextAudio(); // 현재 오디오가 끝나면 다음 오디오 재생
-        };
-
-        audio.play().catch(error => {
-            console.error("Error playing audio:", error);
-            playNextAudio(); // 에러 발생 시 다음 오디오로 넘어감
-        });
-    }
-
-    function sendAudioToServer(audioSamples) {
-        console.log("sendAudioToServer called");
-        const blob = new Blob([audioSamples], {type: 'audio/wav'});
-        console.log("Blob created:", blob);
-
-        const formData = new FormData();
-        formData.append('audio', blob, 'audio.wav');
-        console.log("FormData created:", formData);
-
-
-        fetch(`http://${API_HOSTNAME}/process_audio_chat`, {method: 'POST', body: formData})
-            .then(response => response.json())
-            .then(data => {
-                console.log("Server response:", data);
-                if (data.success) {
-                    ws.send("get_history");
-                    updateChatDisplay(data.question, "User");
-                    updateChatDisplay(data.response, "Assistant");
-                    playAudio(data.audio_file);
+        async function setupVAD() {
+            myVAD = await vad.MicVAD.new({
+                onSpeechStart: () => {
+                    console.log("Speech start detected");
+                },
+                onSpeechEnd: (audio) => {
+                    sendAudioToServer(audio);
                 }
-            })
-            .catch(error => {
-                console.error("Error sending audio to server:", error);
             });
-    }
+        }
 
-    function updateChatDisplay(message, sender) {
-        const chatDiv = document.querySelector('.chats');
-        const currentTime = new Date().toLocaleTimeString();
+        function startVAD() {
+            myVAD.start();
+            vadActive = true;
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('endBtn').style.display = 'inline';
+            document.getElementById('pauseBtn').style.display = 'inline';
+        }
 
-        // 채팅 아이템 구조 생성
-        const chatItem = document.createElement('div');
-        chatItem.className = 'chat chat-left'; // 'chat-right'를 사용하여 발신자에 따라 클래스를 변경할 수 있습니다.
+        function pauseVAD() {
+            myVAD.pause();
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('resumeBtn').style.display = 'inline';
+        }
 
-        chatItem.innerHTML = `
+        function resumeVAD() {
+            myVAD.start();
+            document.getElementById('pauseBtn').style.display = 'inline';
+            document.getElementById('resumeBtn').style.display = 'none';
+        }
+
+        function endVAD() {
+            myVAD.pause();
+            vadActive = false;
+            document.getElementById('endBtn').style.display = 'none';
+            document.getElementById('startBtn').style.display = 'inline';
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('resumeBtn').style.display = 'none';
+        }
+
+        let audioQueue = [];
+        let isPlaying = false;
+
+        function playAudio(base64Audio) {
+            audioQueue.push(base64Audio);
+            if (!isPlaying) {
+                playNextAudio();
+            }
+        }
+
+        function playNextAudio() {
+            if (audioQueue.length === 0) {
+                isPlaying = false;
+                return;
+            }
+
+            isPlaying = true;
+            const base64Audio = audioQueue.shift();
+            const audio = new Audio("data:audio/mp3;base64," + base64Audio);
+
+            audio.onended = () => {
+                playNextAudio(); // 현재 오디오가 끝나면 다음 오디오 재생
+            };
+
+            audio.play().catch(error => {
+                console.error("Error playing audio:", error);
+                playNextAudio(); // 에러 발생 시 다음 오디오로 넘어감
+            });
+        }
+
+        function sendAudioToServer(audioSamples) {
+            console.log("sendAudioToServer called");
+            const blob = new Blob([audioSamples], {type: 'audio/wav'});
+            console.log("Blob created:", blob);
+
+            const formData = new FormData();
+            formData.append('audio', blob, 'audio.wav');
+            console.log("FormData created:", formData);
+
+
+            fetch(`http://${API_HOSTNAME}/process_audio_chat`, {method: 'POST', body: formData})
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Server response:", data);
+                    if (data.success) {
+                        ws.send("get_history");
+                        updateChatDisplay(data.question, "User");
+                        updateChatDisplay(data.response, "Assistant");
+                        playAudio(data.audio_file);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error sending audio to server:", error);
+                });
+        }
+
+        function updateChatDisplay(message, sender) {
+            const chatDiv = document.querySelector('.chats');
+            const currentTime = new Date().toLocaleTimeString();
+
+            // 채팅 아이템 구조 생성
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat chat-left'; // 'chat-right'를 사용하여 발신자에 따라 클래스를 변경할 수 있습니다.
+
+            chatItem.innerHTML = `
             <div class="chat-avatar">
                 <a href="profile.html" class="avatar">
                         <img src="../assets/img/profiles/avatar-02.jpg" alt="User Image">
@@ -161,54 +157,59 @@
             </div>
         `;
 
-        chatDiv.appendChild(chatItem);
-        chatDiv.scrollTop = chatDiv.scrollHeight; // 스크롤을 최신 메시지로 이동
-    }
+            chatDiv.appendChild(chatItem);
+            chatDiv.scrollTop = chatDiv.scrollHeight; // 스크롤을 최신 메시지로 이동
+        }
 
-    async function updateVoices() {
-        const tts = document.getElementById('tts').value;
-        const voiceSelect = document.getElementById('voice_name');
-        const voiceLabel = document.getElementById('voice_name_label');
-        voiceSelect.innerHTML = '';
+        async function updateVoices() {
+            const tts = document.getElementById('tts').value;
+            const voiceSelect = document.getElementById('voice_name');
+            const voiceLabel = document.getElementById('voice_name_label');
+            voiceSelect.innerHTML = '';
 
-        if (tts === 'gtts') {
-            voiceSelect.style.display = 'none';
-            voiceLabel.style.display = 'none';
-        } else {
-            voiceSelect.style.display = 'block';
-            voiceLabel.style.display = 'block';
-            if (tts === 'openai') {
-                const voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
-                voices.forEach(voice => {
-                    const option = document.createElement('option');
-                    option.value = voice;
-                    option.textContent = voice;
-                    voiceSelect.appendChild(option);
-                });
-            } else if (tts === 'google') {
-                const voices = ["ko-KR-Standard-A", "ko-KR-Standard-B", "ko-KR-Standard-C", "ko-KR-Standard-D", "ko-KR-Wavenet-A", "ko-KR-Wavenet-B", "ko-KR-Wavenet-C", "ko-KR-Wavenet-D"];
-                voices.forEach(voice => {
-                    const option = document.createElement('option');
-                    option.value = voice;
-                    option.textContent = voice;
-                    voiceSelect.appendChild(option);
-                });
+            if (tts === 'gtts') {
+                voiceSelect.style.display = 'none';
+                voiceLabel.style.display = 'none';
+            } else {
+                voiceSelect.style.display = 'block';
+                voiceLabel.style.display = 'block';
+                if (tts === 'openai') {
+                    const voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
+                    voices.forEach(voice => {
+                        const option = document.createElement('option');
+                        option.value = voice;
+                        option.textContent = voice;
+                        voiceSelect.appendChild(option);
+                    });
+                } else if (tts === 'google') {
+                    const voices = ["ko-KR-Standard-A", "ko-KR-Standard-B", "ko-KR-Standard-C", "ko-KR-Standard-D", "ko-KR-Wavenet-A", "ko-KR-Wavenet-B", "ko-KR-Wavenet-C", "ko-KR-Wavenet-D"];
+                    voices.forEach(voice => {
+                        const option = document.createElement('option');
+                        option.value = voice;
+                        option.textContent = voice;
+                        voiceSelect.appendChild(option);
+                    });
+                }
             }
         }
-    }
 
-    ws.onmessage = function (event) {
-        const chatHistory = JSON.parse(event.data);
-        const chatDiv = document.getElementById('chat');
-        chatDiv.innerHTML = '';
-        chatHistory.forEach(item => {
-            updateChatDisplay(item[2], item[0]); // item[2]는 메시지, item[0]은 발신자
-        });
-    };
-    setupVAD();
-    ws.onopen = () => ws.send("get_history");
-    updateVoices();
-</script>
+        ws.onmessage = function (event) {
+            const chatHistory = JSON.parse(event.data);
+            const chatDiv = document.getElementById('chat');
+            chatDiv.innerHTML = '';
+            chatHistory.forEach(item => {
+                updateChatDisplay(item[2], item[0]); // item[2]는 메시지, item[0]은 발신자
+            });
+        };
+        setupVAD();
+        ws.onopen = () => ws.send("get_history");
+        updateVoices();
+    </script>
+
+</head>
+
+<body onload="setupVAD()">
+
 <!-- Main Wrapper -->
 <div class="main-wrapper">
 
@@ -1381,7 +1382,8 @@
                         <div class="fixed-header">
                             <ul class="nav nav-tabs nav-tabs-bottom">
                                 <li class="nav-item">
-                                    <a class="nav-link active" href="#chats_tab" data-bs-toggle="tab" aria-selected="true" role="tab">Chats</a>
+                                    <a class="nav-link active" href="#chats_tab" data-bs-toggle="tab"
+                                       aria-selected="true" role="tab">Chats</a>
                             </ul>
                         </div>
                         <div class="tab-content chat-contents">
