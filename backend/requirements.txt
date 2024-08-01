@@ -8,3 +8,11 @@ numpy~=2.0.1
 requests~=2.32.3
 pydantic~=2.8.2
 python-dotenv~=1.0.1
+redis==5.0.8
+langchain==0.2.11
+langchain-community==0.2.10
+wordcloud==1.9.3
+transformers==4.43.3
+torch==2.2.2
+langchain-openai==0.1.20
+python-dotenv==1.0.1
