@@ -130,14 +130,10 @@ async def process_audio_chat(audio: UploadFile = File(...)):
     print("STT result:", question)
 
     now = datetime.now().strftime("%H:%M")
-    chat_history.append(("user", now, question))
-    messages.append({"role": "user", "content": question})
 
     response = ask_gpt(question)
-    messages.append({"role": "system", "content": response})
 
     now = datetime.now().strftime("%H:%M")
-    chat_history.append(("bot", now, response))
 
     tts = os.environ["TTS_SERVICE"]
     voice_name = os.environ["TTS_VOICE"]
