@@ -12,6 +12,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 import chat_utils
 from langchain_community.chat_message_histories import RedisChatMessageHistory
 from make_wordcloud import generate_cloud
+from summerize import daily_report
 
 # InMemoryChatMessageHistory를 사용할 경우 아래 코드를 사용
 # store = {}
@@ -115,7 +116,26 @@ if not redis_history:
 
     print(redis_history)
 
+# 챗봇 시작
+while True:
+    ####################################################
+     # input을 아이의 입력에 따라 챗봇이 진행될 수 있도록 하는 코드가 필요합니다.
+    ####################################################
 
+    query = input("Type your query: ")
+
+    if query == "바이":
+        break
+
+    else:
+        # AI 답변 생성
+        result = with_message_history.invoke(input={"input": query}, config=config)
+        print(result.content)
+
+    # 버튼 누르면 끝내는 코드 작성 필요
+    # 우선은, "바이"라고 입력받으면 종료
+
+# WordCloud 생성
 child_message = ""
 for dialogue in redis_history.messages:
     if isinstance(dialogue, HumanMessage):
@@ -123,17 +143,5 @@ for dialogue in redis_history.messages:
         child_message += "\n"
 generate_cloud(child_message)
 
-# 챗봇 시작
-while True:
-    ####################################################
-     # input을 아이의 입력에 따라 챗봇이 진행될 수 있도록 하는 코드가 필요합니다.
-    ####################################################
-    
-    query = input("Type your query: ")
-
-    # AI 답변 생성
-    result = with_message_history.invoke(input={"input": query}, config=config)
-
-    print(result.content)
-
-    # 버튼 누르면 끝내는 코드 작성 필요
+# 대화 기반으로 Daily Report 생성
+print(daily_report(redis_history))

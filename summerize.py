@@ -1,22 +1,33 @@
-
 ###############################################################################
-
-##  github : https://github.com/cosmoquester/2021-dialogue-summary-competition 
-##  전체 로그를 받아서 모델에 적용할 수 있는 코드가 필요합니다. - 성능은 기본적으로 좋습니다.
-
+# 아이와 AI 대화를 요약하는 함수
 ###############################################################################
+from chat_utils import load_model
+from langchain_core.prompts import ChatPromptTemplate
 
+summarization_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system",
+         """
+         당신은 아동과 AI의 대화를 요약해서 부모에게 보여줄 Daily Report를 생성하는 assistant입니다.
+         Daily Report 양식은 다음과 같습니다. []안의 내용은 작성 예시입니다. 실제로 출력할때는 []는 빼고 출력해줘:
+         (Bold) 날짜: [2024-08-02]
+         (Bold) 총 대화 수: [25줄]
+         
+         (Bold) 주요 포인트:
+         1. [아동은 학교 수업에서 선생님께 숲과 나무를 잘 그린다고 칭찬을 받았습니다. 하지만, 친구들이 자신을 인정해주지 않아서 기분이 상했습니다.]
+         2. [아동은 아빠가 놀이공원에 데려가겠다고 했던 약속을 기억하고 있습니다. 주말에 놀이공원에 갈 수 있을 것으로 기대하지만, 저번 주말처럼 엄마가 바빠서 가지 못할까봐 걱정하고 있습니다.]
+         3. [아동은 AI 페르소나 '해용'이와 수영에 대해서 이야기를 나누었습니다. 친구들과 커서 여행을 떠나면 하와이로 놀러가서 같이 수영을 하기로 약속했습니다.]
+         
+         감정 및 특이사항:
+         - 감정: [아이는 전반적으로 매우 행복하고 희망찬 하루를 보냈습니다. 하지만, 주말에 엄마와 함께 놀이공원에 가지 못할까봐 약간 불안합니다.]
+         - 특이사항: [아이는 오늘 '친구'라는 단어와 '엄마'라는 단어를 가장 많이 사용했습니다. '귀찮다'라는 부정적인 표현도 여러차례 사용했습니다. =] 
+         
+         메모: 추가적으로 부모가 알아야 할 내용을 기록합니다.         
+         """),
+        ("human", "{input}")
+    ]
+)
 
-from transformers import pipeline
-
-model_name = "alaggung/bart-r3f"
-max_length = 64
-
-
-dialogue = ["밥 ㄱ?", "고고고고 뭐 먹을까?", "어제 김치찌개 먹어서 한식말고 딴 거", "그럼 돈까스 어때?", "오 좋다 1시 학관 앞으로 오셈", "ㅇㅋ"]
-
-
-summarizer = pipeline("summarization", model=model_name)
-summarization = summarizer("[BOS]" + "[SEP]".join(dialogue) + "[EOS]", max_length=max_length)
-
-print(summarization)
+def daily_report(text, model=load_model("gpt-4o")):
+    chain = summarization_prompt | model
+    return chain.invoke(text).content
