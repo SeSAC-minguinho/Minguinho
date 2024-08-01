@@ -161,38 +161,6 @@
             chatDiv.scrollTop = chatDiv.scrollHeight; // 스크롤을 최신 메시지로 이동
         }
 
-        async function updateVoices() {
-            const tts = document.getElementById('tts').value;
-            const voiceSelect = document.getElementById('voice_name');
-            const voiceLabel = document.getElementById('voice_name_label');
-            voiceSelect.innerHTML = '';
-
-            if (tts === 'gtts') {
-                voiceSelect.style.display = 'none';
-                voiceLabel.style.display = 'none';
-            } else {
-                voiceSelect.style.display = 'block';
-                voiceLabel.style.display = 'block';
-                if (tts === 'openai') {
-                    const voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
-                    voices.forEach(voice => {
-                        const option = document.createElement('option');
-                        option.value = voice;
-                        option.textContent = voice;
-                        voiceSelect.appendChild(option);
-                    });
-                } else if (tts === 'google') {
-                    const voices = ["ko-KR-Standard-A", "ko-KR-Standard-B", "ko-KR-Standard-C", "ko-KR-Standard-D", "ko-KR-Wavenet-A", "ko-KR-Wavenet-B", "ko-KR-Wavenet-C", "ko-KR-Wavenet-D"];
-                    voices.forEach(voice => {
-                        const option = document.createElement('option');
-                        option.value = voice;
-                        option.textContent = voice;
-                        voiceSelect.appendChild(option);
-                    });
-                }
-            }
-        }
-
         ws.onmessage = function (event) {
             const chatHistory = JSON.parse(event.data);
             const chatDiv = document.getElementById('chat');
@@ -203,7 +171,6 @@
         };
         setupVAD();
         ws.onopen = () => ws.send("get_history");
-        updateVoices();
     </script>
 
 </head>
