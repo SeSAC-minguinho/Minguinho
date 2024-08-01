@@ -6,11 +6,12 @@
 ################################################
 
 
-
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
 import chat_utils
 from langchain_community.chat_message_histories import RedisChatMessageHistory
+from make_wordcloud import generate_cloud
 
 # InMemoryChatMessageHistory를 사용할 경우 아래 코드를 사용
 # store = {}
@@ -94,22 +95,33 @@ print(redis_history)
 
 # Redis 메시지 초기화 하고 싶을 때 사용
 # redis_history.clear()
-print(redis_history)
+# print(redis_history)
 
-if persona == "Haeyong":
-    redis_history.add_ai_message(
-        "안녕! 나는 {}이야! 오늘은 어떻게 재밌게 놀아볼까?".format("해용")
-    )
-if persona == "Trabbit":
-    redis_history.add_ai_message(
-        "안녕! 나는 {}이야! 오늘은 어떻게 재밌게 놀아볼까?".format("트래빗")
-    )
-if persona == "Kkabuk":
-    redis_history.add_ai_message(
-        "안녕! 나는 {}이야! 오늘은 어떻게 재밌게 놀아볼까?".format("까붓")
-    )
 
-print(redis_history)
+# 대화가 시작되면 페르소나가 아동에게 말을 겁니다.
+if not redis_history:
+    if persona == "Haeyong":
+        redis_history.add_ai_message(
+            "안녕! 나는 {}이야! 오늘은 어떻게 재밌게 놀아볼까?".format("해용")
+        )
+    if persona == "Trabbit":
+        redis_history.add_ai_message(
+            "안녕! 나는 {}이야! 오늘은 어떻게 재밌게 놀아볼까?".format("트래빗")
+        )
+    if persona == "Kkabuk":
+        redis_history.add_ai_message(
+            "안녕! 나는 {}이야! 오늘은 어떻게 재밌게 놀아볼까?".format("까붓")
+        )
+
+    print(redis_history)
+
+
+child_message = ""
+for dialogue in redis_history.messages:
+    if isinstance(dialogue, HumanMessage):
+        child_message += dialogue.content
+        child_message += "\n"
+generate_cloud(child_message)
 
 # 챗봇 시작
 while True:
@@ -123,3 +135,5 @@ while True:
     result = with_message_history.invoke(input={"input": query}, config=config)
 
     print(result.content)
+
+    # 버튼 누르면 끝내는 코드 작성 필요
