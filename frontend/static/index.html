@@ -32,6 +32,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.7/dist/bundle.min.js"></script>
     <script>
         const API_HOSTNAME = "{{ api_hostname }}";
+        const HTTP_PROTOCOL = window.location.protocol;
         const WS_PROTO = window.location.protocol === "https:" ? "wss" : "ws";
         const ws = new WebSocket(`${WS_PROTO}://${API_HOSTNAME}/ws`);
         let myVAD = null;
@@ -117,7 +118,7 @@
             console.log("FormData created:", formData);
 
 
-            fetch(`${window.location.protocol}://${API_HOSTNAME}/process_audio_chat`, {method: 'POST', body: formData})
+            fetch(`${HTTP_PROTOCOL}//${API_HOSTNAME}/process_audio_chat`, {method: 'POST', body: formData})
                 .then(response => response.json())
                 .then(data => {
                     console.log("Server response:", data);
