@@ -6,6 +6,9 @@ services:
       - GOOGLE_TTS_API_KEY=${GOOGLE_TTS_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - API_HOSTNAME=${API_HOSTNAME}
+      - HTTP_PROTOCOL=${HTTP_PROTOCOL}
+      - TTS_SERVICE=${TTS_SERVICE}
+      - TTS_VOICE=${TTS_VOICE}
     ports:
       - "8001:8000"
     volumes:
