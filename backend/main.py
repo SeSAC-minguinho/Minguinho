@@ -14,7 +14,7 @@ import requests
 import os
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 client = OpenAI()
 
 
@@ -92,6 +92,13 @@ def gcloud_tts(response_str, voice='ko-KR-Wavenet-A', api_key=os.environ["GOOGLE
 async def read_root():
     api_hostname = os.getenv("API_HOSTNAME", "localhost:8000")
     with open("static/index.html", "r", encoding="utf-8") as f:
+        html_content = f.read().replace("{{ api_hostname }}", api_hostname)
+        return HTMLResponse(content=html_content)
+
+@app.get("/call", response_class=HTMLResponse)
+async def read_root():
+    api_hostname = os.getenv("API_HOSTNAME", "localhost:8000")
+    with open("static/call.html", "r", encoding="utf-8") as f:
         html_content = f.read().replace("{{ api_hostname }}", api_hostname)
         return HTMLResponse(content=html_content)
 

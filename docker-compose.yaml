@@ -8,6 +8,9 @@ services:
       - API_HOSTNAME=${API_HOSTNAME}
     ports:
       - "8001:8000"
+    volumes:
+      - ./frontend/static:/app/static
+      - ./frontend/assets:/app/assets
     restart: unless-stopped
 
   nginx:
