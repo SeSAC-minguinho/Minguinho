@@ -33,16 +33,6 @@ app.add_middleware(
 client = OpenAI()
 
 
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
-
-chat_history = []
-messages = [{"role": "system",
-             "content": "You are a thoughtful assistant. Respond to all input in 25 words and answer in Korean"}]
-
-
 def STT(audio):
     buffer = io.BytesIO(audio)
     buffer.name = "input.wav"
@@ -164,82 +154,6 @@ async def process_audio_chat(audio: UploadFile = File(...)):
     mp3_base64 = base64.b64encode(tts_data).decode('utf-8')
 
     return {"success": True, "question": question, "response": response, "audio_file": mp3_base64}
-
-
-@app.post("/process_audio")
-async def process_audio(tts: str = Form(...), voice_name: str = Form(...), audio: UploadFile = File(...)):
-    contents = await audio.read()
-    print("Received audio file:", audio.filename)
-    print("Audio file size:", len(contents))
-
-    # Convert Float32Array to numpy array
-    float32_array = np.frombuffer(contents, dtype=np.float32)
-    print("Converted to float32 array:", float32_array)
-
-    # Convert numpy array to bytes
-    int16_array = (float32_array * 32767).astype(np.int16)
-    byte_data = int16_array.tobytes()
-    print("Converted to int16 byte data")
-
-    # Create an AudioSegment from the byte data
-    audio_segment = AudioSegment(
-        data=byte_data,
-        sample_width=2,  # 2 bytes for int16
-        frame_rate=16000,  # Assuming a sample rate of 16000 Hz
-        channels=1  # Assuming mono audio
-    )
-    print("AudioSegment created")
-
-    # Export the AudioSegment to WAV format
-    wav_io = io.BytesIO()
-    audio_segment.export(wav_io, format="wav")
-    wav_io.seek(0)
-    print("Exported to WAV format")
-
-    question = STT(wav_io.read())
-    print("STT result:", question)
-
-    now = datetime.now().strftime("%H:%M")
-    chat_history.append(("user", now, question))
-    messages.append({"role": "user", "content": question})
-
-    response = ask_gpt(question)
-    messages.append({"role": "system", "content": response})
-
-    now = datetime.now().strftime("%H:%M")
-    chat_history.append(("bot", now, response))
-
-    print(f"tts: {tts}, voice_name: {voice_name}")
-
-    if tts == "gtts":
-        tts_data = TTS(response)
-    elif tts == "google":
-        tts_data = gcloud_tts(response, voice_name)
-    else:
-        tts_data = openai_tts(response, voice_name)
-
-    # Encode the MP3 data in base64
-    mp3_base64 = base64.b64encode(tts_data).decode('utf-8')
-
-    return {"success": True, "question": question, "response": response, "audio_file": mp3_base64}
-
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        if data == "get_history":
-            await websocket.send_json(chat_history)
-
-
-@app.post("/reset")
-async def reset():
-    global chat_history, messages
-    chat_history = []
-    messages = [{"role": "system",
-                 "content": "You are a thoughtful assistant. Respond to all input in 25 words and answer in Korean"}]
-    return {"success": True}
 
 
 if __name__ == "__main__":

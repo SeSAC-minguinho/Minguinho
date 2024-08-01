@@ -33,8 +33,6 @@
     <script>
         const API_HOSTNAME = "{{ api_hostname }}";
         const HTTP_PROTOCOL = window.location.protocol;
-        const WS_PROTO = window.location.protocol === "https:" ? "wss" : "ws";
-        const ws = new WebSocket(`${WS_PROTO}://${API_HOSTNAME}/ws`);
         let myVAD = null;
         let vadActive = false;
 
@@ -123,7 +121,6 @@
                 .then(data => {
                     console.log("Server response:", data);
                     if (data.success) {
-                        ws.send("get_history");
                         updateChatDisplay(data.question, "User");
                         updateChatDisplay(data.response, "Assistant");
                         playAudio(data.audio_file);
@@ -161,19 +158,7 @@
             chatDiv.appendChild(chatItem);
             chatDiv.scrollTop = chatDiv.scrollHeight; // 스크롤을 최신 메시지로 이동
         }
-
-        ws.onmessage = function (event) {
-            const chatHistory = JSON.parse(event.data);
-            const chatDiv = document.getElementById('chat');
-            chatDiv.innerHTML = '';
-            chatHistory.forEach(item => {
-                updateChatDisplay(item[2], item[0]); // item[2]는 메시지, item[0]은 발신자
-            });
-        };
-        setupVAD();
-        ws.onopen = () => ws.send("get_history");
     </script>
-
 </head>
 
 <body onload="setupVAD()">
